@@ -1,5 +1,9 @@
 import socket
 import threading
+import pickle
+
+from MazeGenerator import MazeGenerator
+
 
 class Server:
     
@@ -12,11 +16,18 @@ class Server:
         self.max_clients = 2
         self.ready = False
         self.lock = threading.Lock()
+        self.maze = None
 
     def start(self):
         self.server_socket.bind((self.host, self.port))
         self.server_socket.listen(2)
         print(f"Server started on {self.host}:{self.port}")
+        self.generateMaze()
+
+    def generateMaze(self):
+        maze_gen = MazeGenerator()
+        self.maze = maze_gen.generateMaze()
+        print("Maze Generated")
 
     def acceptClients(self):
         try:
@@ -26,6 +37,8 @@ class Server:
                     client_socket, client_address = self.server_socket.accept()
                     self.clients.append(client_socket)
                     print(f"Client {client_address} connected.")
+
+                    self.sendMaze(client_socket)
 
                     client_thread = threading.Thread(target=self.handleClients, args=(client_socket, client_address))
                     self.client_threads.append(client_thread)
@@ -37,6 +50,15 @@ class Server:
         except KeyboardInterrupt:
             print("Server shutting down...")
             self.stop()
+
+    def sendMaze(self, client_socket):
+        try:
+            serialised_maze = pickle.dumps(self.maze)
+            client_socket.sendall(serialised_maze)#
+            print(f"Maze sent to client {client_socket}")
+        except Exception as e:
+            print(f"Error sending maze to client {e}")
+
     
     def handleClients(self, client_socket, client_address):
         try:
