@@ -58,6 +58,20 @@ class MazeGenerator:
                 options.append(option)
         chosen = random.choice(options)
         return chosen[0], chosen[1]
+    
+    def morePaths(self):
+        for i in range(1, ROWS-1):
+            for j in range(1, COLUMNS-1):
+                if self.grid[i][j] == 1 and random.randint(1, 10) == 1:
+                    self.grid[i][j] = 2 
+
+    def spawnAreas(self):
+        for i in range(1, 4):
+            for j in range(1, 4):
+                self.grid[i][j] = 2
+        for i in range(ROWS-4, ROWS-1):
+            for j in range(COLUMNS-4, COLUMNS-1):
+                self.grid[i][j] = 2
 
     def generateMaze(self):
         self.generateBaseGrid()
@@ -77,6 +91,9 @@ class MazeGenerator:
             self.grid[next_row][next_col] = 2
             self.grid[(current[0]+next_row)//2][(current[1]+next_col)//2] = 2
             current = [next_row, next_col]
+        
+        self.morePaths()
+        self.spawnAreas()
         return self.grid
 
 if __name__ == "__main__":
