@@ -46,7 +46,8 @@ class Server:
                     print(f"Client {client_address} disconnected.")
                     break
                 print(f"Message from {client_address}: {message}")
-                client_socket.send(f"Server recieved: {message}".encode('utf-8'))
+                self.broadcast(message, client_socket)
+
 
         except ConnectionError:
             print(f"Client {client_address} disconnected.")
@@ -54,7 +55,13 @@ class Server:
         finally:
             with self.lock:
                 client_socket.close()
-            self.clients.remove(client_socket)
+                self.clients.remove(client_socket)
+
+    def broadcast(self, message, sender_socket):
+        with self.lock:
+            for client in self.clients:
+                if client != sender_socket:
+                    client.send(message.encode('utf-8'))
 
     def stop(self):
         print("Shutting down server...")
