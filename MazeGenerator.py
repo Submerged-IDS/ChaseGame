@@ -2,14 +2,7 @@ import pygame
 import time
 import random
 
-ROWS = 11
-COLUMNS = 11
-CELL_SIZE = 25
-
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
-BLUE = (0, 0, 255)
-RED = (255, 0, 0)
+from Constants import ROWS, COLUMNS
 
 """
 Create a 2D array
@@ -99,6 +92,6 @@ class MazeGenerator:
 if __name__ == "__main__":
     mazeGen = MazeGenerator()
     maze = mazeGen.generateMaze()
-    print(mazeGen.displayMaze())
+    
 
 
