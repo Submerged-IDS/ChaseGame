@@ -13,6 +13,8 @@ class Client:
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.running = True
         self.maze = None
+        self.players = {}
+        self.player_id = None
         
     def connect(self):
         try:
@@ -57,12 +59,32 @@ class Client:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
+                elif event.type == pygame.KEYDOWN:
+                    self.handleKeyPress(event.key)
             
             renderer.drawMap(self.maze)
             pygame.display.flip()
             clock.tick(60)
 
         pygame.quit()
+
+    def handleKeyPress(self, key):
+        direction = None
+        if key == pygame.K_UP:
+            direction = 1
+        elif key == pygame.K_RIGHT:
+            direction = 2
+        elif key == pygame.K_DOWN:
+            direction = 3
+        elif key == pygame.K_LEFT:
+            direction = 4
+
+        if direction:
+            try:
+                self.client_socket.send(f"Move {direction}".encode('utf-8'))
+            except ConnectionError:
+                print("Failed to send movement comment.")
+        
 
     def sendMessages(self):
         while self.running:
@@ -80,9 +102,18 @@ class Client:
     def receiveMessages(self):
         while self.running:
             try:
-                message = self.client_socket.recv(1024).decode('utf-8')
+                message = self.client_socket.recv(4096)
                 if message:
-                    print(f"Server: {message}")
+                    try:
+                        self.players = pickle.loads(message)
+                        for player_id, (x, y) in self.players.items():
+                            for row in self.maze:
+                                for col_index, cell in enumerate(row):
+                                    if cell == player_id:
+                                        row[col_index] = 2 
+                            self.maze[y][x] = player_id 
+                    except (pickle.PickleError, EOFError):
+                        print(f"Server: {message.decode('utf-8')}")
             except ConnectionError:
                 print("Disconnected from server.")
                 self.running = False
