@@ -2,8 +2,9 @@ import socket
 import threading
 import pickle
 
+from Constants import ROWS, COLUMNS, BLUE, RED
 from MazeGenerator import MazeGenerator
-
+from Player import Player
 
 class Server:
     
@@ -17,6 +18,7 @@ class Server:
         self.ready = False
         self.lock = threading.Lock()
         self.maze = None
+        self.players = {}
 
     def start(self):
         self.server_socket.bind((self.host, self.port))
@@ -35,10 +37,18 @@ class Server:
             while len(self.clients) < self.max_clients:
                 try:
                     client_socket, client_address = self.server_socket.accept()
-                    self.clients.append(client_socket)
                     print(f"Client {client_address} connected.")
 
+                    if len(self.clients) == 0:
+                        player_1 = Player(3, 2, 2, BLUE, self.maze)
+                        self.players[client_socket] = player_1
+                    elif len(self.clients) == 1:
+                        player_2 = Player(4, ROWS-3, COLUMNS-3, RED, self.maze)
+                        self.players[client_socket] = player_2
+
+                    self.clients.append(client_socket)
                     self.sendMaze(client_socket)
+                    self.broadcastPlayerPositions()
 
                     client_thread = threading.Thread(target=self.handleClients, args=(client_socket, client_address))
                     self.client_threads.append(client_thread)
@@ -51,6 +61,7 @@ class Server:
             print("Server shutting down...")
             self.stop()
 
+
     def sendMaze(self, client_socket):
         try:
             serialised_maze = pickle.dumps(self.maze)
@@ -59,7 +70,13 @@ class Server:
         except Exception as e:
             print(f"Error sending maze to client {e}")
 
-    
+    def broadcastPlayerPositions(self):
+        with self.lock:
+            positions = {player.player_id: (player.x, player.y) for player in self.players.values()}
+            serialised_positions = pickle.dumps(positions)
+            for client in self.clients:
+                client.sendall(serialised_positions)
+
     def handleClients(self, client_socket, client_address):
         try:
             while True:
@@ -67,8 +84,16 @@ class Server:
                 if message.lower() == 'exit':
                     print(f"Client {client_address} disconnected.")
                     break
+
+                if message.startswith("Move"):
+                    _, direction = message.split()
+                    direction = int(direction)
+                    player = self.players[client_socket]
+                    player.move(direction)
+                    self.broadcastPlayerPositions()
+
+
                 print(f"Message from {client_address}: {message}")
-                self.broadcast(message, client_socket)
 
 
         except ConnectionError:
@@ -78,6 +103,7 @@ class Server:
             with self.lock:
                 client_socket.close()
                 self.clients.remove(client_socket)
+                del self.players[client_socket]
 
     def broadcast(self, message, sender_socket):
         with self.lock:
