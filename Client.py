@@ -5,6 +5,7 @@ import pygame
 
 from Constants import GRID_WIDTH, GRID_HEIGHT
 from MapRenderer import MapRenderer
+from GameState import GameState  # Step 1: Import GameState
 
 class Client:
     def __init__(self, host='127.0.0.1', port=8080):
@@ -15,6 +16,7 @@ class Client:
         self.maze = None
         self.players = {}
         self.player_id = None
+        self.game_state = GameState()  # Step 2: Initialize GameState
         
     def connect(self):
         try:
@@ -105,13 +107,17 @@ class Client:
                 message = self.client_socket.recv(4096)
                 if message:
                     try:
-                        self.players = pickle.loads(message)
-                        for player_id, (x, y) in self.players.items():
-                            for row in self.maze:
-                                for col_index, cell in enumerate(row):
-                                    if cell == player_id:
-                                        row[col_index] = 2 
-                            self.maze[y][x] = player_id 
+                        data = pickle.loads(message)
+                        if isinstance(data, dict):
+                            self.players = data
+                            for player_id, (x, y) in self.players.items():
+                                for row in self.maze:
+                                    for col_index, cell in enumerate(row):
+                                        if cell == player_id:
+                                            row[col_index] = 2 
+                                self.maze[y][x] = player_id 
+                        elif isinstance(data, GameState):
+                            self.game_state = data  # Step 3: Update game state
                     except (pickle.PickleError, EOFError):
                         print(f"Server: {message.decode('utf-8')}")
             except ConnectionError:
@@ -127,8 +133,3 @@ class Client:
 if __name__ == "__main__":
     client = Client(host='127.0.0.1', port=8080)
     client.connect()
-    
-
-
-
-

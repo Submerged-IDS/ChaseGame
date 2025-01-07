@@ -5,6 +5,7 @@ import pickle
 from Constants import ROWS, COLUMNS, BLUE, RED
 from MazeGenerator import MazeGenerator
 from Player import Player
+from GameState import GameState  # Step 1: Import GameState
 
 class Server:
     
@@ -19,6 +20,7 @@ class Server:
         self.lock = threading.Lock()
         self.maze = None
         self.players = {}
+        self.game_state = GameState()  # Step 2: Initialize GameState
 
     def start(self):
         self.server_socket.bind((self.host, self.port))
@@ -57,15 +59,15 @@ class Server:
                     pass
 
             print("No longer accepting clients.")
+            self.game_state.startRound()  # Step 3: Start the game round
         except KeyboardInterrupt:
             print("Server shutting down...")
             self.stop()
 
-
     def sendMaze(self, client_socket):
         try:
             serialised_maze = pickle.dumps(self.maze)
-            client_socket.sendall(serialised_maze)#
+            client_socket.sendall(serialised_maze)
             print(f"Maze sent to client {client_socket}")
         except Exception as e:
             print(f"Error sending maze to client {e}")
@@ -92,9 +94,16 @@ class Server:
                     player.move(direction)
                     self.broadcastPlayerPositions()
 
+                    if player.checkTag(self.players.values()):
+                        self.game_state.endRound()  # Step 4: End the round if a player is tagged
+                        if self.game_state.current_round > 6:
+                            self.broadcast("Game Over", client_socket)
+                            self.stop()
+                            break
+                        else:
+                            self.game_state.startRound()
 
                 print(f"Message from {client_address}: {message}")
-
 
         except ConnectionError:
             print(f"Client {client_address} disconnected.")
@@ -127,6 +136,3 @@ if __name__ == '__main__':
         server.acceptClients()
     except KeyboardInterrupt:
         server.stop()
-
-
-

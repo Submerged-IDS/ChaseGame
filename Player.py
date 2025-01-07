@@ -37,7 +37,16 @@ class Player:
         elif direction == 4:
             new_x -= 1
         
-        if self.isInGrid(row=new_y, col=new_x) and self.grid[new_y][new_x] != 1:
-            self.grid[self.y][self.x] = 2
+        if self.isInGrid(row=new_y, col=new_x) and self.grid[new_y][new_x] != 1: 
+            self.grid[self.y][self.x] = 2  
             self.x, self.y = new_x, new_y
             self.grid[self.y][self.x] = self.player_id
+
+
+    def checkTag(self, other_players):
+        for other_player in other_players:
+            if other_player != self and self.x == other_player.x and self.y == other_player.y:
+                return True
+        return False
+
+    

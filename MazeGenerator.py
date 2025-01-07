@@ -55,7 +55,7 @@ class MazeGenerator:
     def morePaths(self):
         for i in range(1, ROWS-1):
             for j in range(1, COLUMNS-1):
-                if self.grid[i][j] == 1 and random.randint(1, 10) == 1:
+                if self.grid[i][j] == 1 and random.randint(1, 5) == 1:
                     self.grid[i][j] = 2 
 
     def spawnAreas(self):
